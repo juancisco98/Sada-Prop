@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Property, PropertyStatus, Professional } from '../types';
+import { Property, PropertyStatus, Professional, Appointment, Client, AppointmentStatus, PublicationStatus } from '../types';
 
 import { formatCurrency } from '../utils/currency';
-import { Home, AlertCircle, CheckCircle, Clock, Pencil, StickyNote, Save, Hammer, Timer, CheckSquare, DollarSign, Trash2, ArrowLeft } from 'lucide-react';
+import { Home, AlertCircle, CheckCircle, Clock, Pencil, StickyNote, Save, Hammer, Timer, CheckSquare, DollarSign, Trash2, ArrowLeft, Key, Calendar, Star, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
@@ -15,6 +15,9 @@ interface PropertyCardProps {
   onDelete?: (id: string) => void;
   onBack?: () => void;
   professionals: Professional[];
+  propertyAppointments?: Appointment[];
+  clients?: Client[];
+  onScheduleVisit?: (property: Property) => void;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
@@ -27,11 +30,27 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onFinishMaintenance,
   onDelete,
   onBack,
-  professionals
+  professionals,
+  propertyAppointments = [],
+  clients = [],
+  onScheduleVisit
 }) => {
   const [noteText, setNoteText] = useState(property.notes || '');
   const [isDirty, setIsDirty] = useState(false);
   const [timeString, setTimeString] = useState<string>('');
+  const [showVisitHistory, setShowVisitHistory] = useState(false);
+
+  const getPublicationStatusConfig = (status?: PublicationStatus) => {
+    switch (status) {
+      case 'CAPTACION': return { label: 'Captación', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' };
+      case 'DISPONIBLE': return { label: 'Disponible', bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
+      case 'RESERVADA': return { label: 'Reservada', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' };
+      case 'VENDIDA': return { label: 'Vendida', bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
+      default: return null;
+    }
+  };
+
+  const getClientName = (clientId: string) => clients.find(c => c.id === clientId)?.name || 'Cliente desconocido';
 
   // Calculate building metrics if applicable
   const buildingMetrics = React.useMemo(() => {
@@ -214,6 +233,14 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             </div>
           )}
 
+          {/* Publication Status Badge */}
+          {property.publicationStatus && getPublicationStatusConfig(property.publicationStatus) && (
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getPublicationStatusConfig(property.publicationStatus)!.bg} ${getPublicationStatusConfig(property.publicationStatus)!.text} ${getPublicationStatusConfig(property.publicationStatus)!.border}`}>
+              <MapPin className="w-3 h-3" />
+              <span>{getPublicationStatusConfig(property.publicationStatus)!.label}</span>
+            </div>
+          )}
+
           {/* Maintenance Badge */}
           {isUnderMaintenance && (
             <div className="flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
@@ -323,6 +350,72 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             onChange={handleNoteChange}
           />
         </div>
+      </div>
+
+      {/* Key Location */}
+      {property.keyLocation && (
+        <div className="px-6 pb-3">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+            <Key className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <span className="text-xs font-bold text-gray-400 uppercase">Llaves:</span>
+            <span className="text-sm text-gray-700">{property.keyLocation}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Visit History & Schedule Button */}
+      <div className="px-6 pb-3 space-y-2">
+        {onScheduleVisit && (
+          <button
+            onClick={() => onScheduleVisit(property)}
+            className="w-full py-2.5 bg-indigo-50 text-indigo-700 rounded-xl font-semibold text-sm hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 border border-indigo-200"
+          >
+            <Calendar className="w-4 h-4" /> Agendar Nueva Visita
+          </button>
+        )}
+
+        {propertyAppointments.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowVisitHistory(!showVisitHistory)}
+              className="w-full flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider py-1.5"
+            >
+              <span>Historial de Visitas ({propertyAppointments.length})</span>
+              {showVisitHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {showVisitHistory && (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {propertyAppointments.slice(0, 10).map(appt => {
+                  const statusColor = appt.status === AppointmentStatus.REALIZADA
+                    ? 'text-green-600' : appt.status === AppointmentStatus.CANCELADA
+                      ? 'text-red-500' : 'text-yellow-600';
+                  return (
+                    <div key={appt.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-2 border border-gray-100 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-gray-800">{getClientName(appt.clientId)}</span>
+                        <span className="text-gray-400 ml-2">
+                          {new Date(appt.fechaHora).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {appt.interestRating && (
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} className={`w-2.5 h-2.5 ${s <= (appt.interestRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                            ))}
+                          </div>
+                        )}
+                        <span className={`font-bold ${statusColor}`}>
+                          {appt.status === AppointmentStatus.REALIZADA ? '✓' : appt.status === AppointmentStatus.CANCELADA ? '✕' : '◷'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 p-6 pt-0">

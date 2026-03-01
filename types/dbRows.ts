@@ -39,6 +39,8 @@ export interface DbPropertyRow {
     building_id?: string | null;
     unit_label?: string | null;
     property_type?: string | null;
+    key_location?: string | null;
+    publication_status?: string | null;
     user_id?: string | null;
     created_at?: string;
 }
@@ -77,6 +79,35 @@ export interface DbTenantRow {
     phone?: string | null;
     email?: string | null;
     property_id?: string | null;
+    user_id?: string | null;
+    created_at?: string;
+}
+
+export interface DbClientRow {
+    id: string;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    budget?: number | string | null;
+    search_type?: string | null;
+    property_type_sought?: string | null;
+    notes?: string | null;
+    user_id?: string | null;
+    created_at?: string;
+}
+
+export interface DbAppointmentRow {
+    id: string;
+    client_id: string;
+    property_id: string;
+    professional_id?: string | null;
+    fecha_hora: string;
+    duration: number;
+    status: string;
+    comentarios_post_visita?: string | null;
+    interest_rating?: number | null;
+    price_rating?: number | null;
+    feedback_comment?: string | null;
     user_id?: string | null;
     created_at?: string;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, MapPin, Image as ImageIcon, Briefcase, StickyNote, Upload, Hammer, FileText, Check, Globe, LayoutGrid, Ruler, Trash2, User, Phone, DollarSign } from 'lucide-react';
-import { Property, PropertyStatus, Professional, PropertyType } from '../types';
+import { Property, PropertyStatus, Professional, PropertyType, PublicationStatus } from '../types';
+import { Key } from 'lucide-react';
 import { DEFAULT_PROPERTY_IMAGE } from '../constants';
 
 import { getTaxConfig } from '../utils/taxConfig';
@@ -69,6 +70,10 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
 
     // Property type
     propertyType: 'casa' as PropertyType,
+
+    // Realtor fields
+    keyLocation: '',
+    publicationStatus: 'DISPONIBLE' as PublicationStatus,
   });
 
   // Mock state for document uploads
@@ -94,6 +99,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
         country: existingProperty.country || 'Argentina',
         currency: existingProperty.currency || 'ARS',
         propertyType: existingProperty.propertyType || (existingProperty.buildingId ? 'edificio' : 'casa'),
+        keyLocation: existingProperty.keyLocation || '',
+        publicationStatus: existingProperty.publicationStatus || 'DISPONIBLE',
       });
     } else if (address) {
       const initialCountry = detectedCountry || 'Argentina';
@@ -290,6 +297,8 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
       country: formData.country,
       currency: formData.currency,
       propertyType: formData.propertyType || 'casa',
+      keyLocation: formData.keyLocation || undefined,
+      publicationStatus: formData.publicationStatus || 'DISPONIBLE',
     };
     onSave(propertyToSave);
     toast.success(isEditing ? 'Propiedad actualizada' : 'Propiedad creada');
@@ -552,6 +561,36 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({
                     <input type="file" className="hidden" onChange={handleDocUpload} />
                   </label>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Key Location & Publication Status */}
+          {!isRestrictedMode && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5" /> Ubicación de Llaves
+                </label>
+                <input
+                  type="text" placeholder="Ej: En portería, en oficina..."
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  value={formData.keyLocation} onChange={e => setFormData({ ...formData, keyLocation: e.target.value })} aria-label="Ubicación de llaves"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Estado de Publicación
+                </label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={formData.publicationStatus} onChange={e => setFormData({ ...formData, publicationStatus: e.target.value as PublicationStatus })} aria-label="Estado de publicación"
+                >
+                  <option value="CAPTACION">Captación</option>
+                  <option value="DISPONIBLE">Disponible</option>
+                  <option value="RESERVADA">Reservada</option>
+                  <option value="VENDIDA">Vendida</option>
+                </select>
               </div>
             </div>
           )}

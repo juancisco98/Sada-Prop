@@ -7,6 +7,16 @@ export enum PropertyStatus {
 
 export type PropertyType = 'casa' | 'edificio' | 'local';
 
+export type SearchType = 'compra' | 'alquiler';
+
+export type PublicationStatus = 'CAPTACION' | 'DISPONIBLE' | 'RESERVADA' | 'VENDIDA';
+
+export enum AppointmentStatus {
+  PENDIENTE = 'PENDIENTE',
+  REALIZADA = 'REALIZADA',
+  CANCELADA = 'CANCELADA',
+}
+
 export interface User {
   id: string;
   name: string;
@@ -51,6 +61,8 @@ export interface Property {
   buildingId?: string;
   unitLabel?: string;
   propertyType: PropertyType;
+  keyLocation?: string;
+  publicationStatus?: PublicationStatus;
   userId?: string;
 }
 
@@ -121,6 +133,33 @@ export interface PartialExpense {
   amount: number;
   date: string; // ISO string
   by: string; // User who added it
+}
+
+export interface Client {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  budget?: number;
+  searchType?: SearchType;
+  propertyTypeSought?: string;
+  notes?: string;
+  userId?: string;
+}
+
+export interface Appointment {
+  id: string;
+  clientId: string;
+  propertyId: string;
+  professionalId?: string;
+  fechaHora: string; // ISO string
+  duration: number; // minutes
+  status: AppointmentStatus;
+  comentariosPostVisita?: string;
+  interestRating?: number; // 1-5
+  priceRating?: number; // 1-5
+  feedbackComment?: string;
+  userId?: string;
 }
 
 export interface ExpenseLog {

@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, Users, X, Map as MapIcon, LogOut, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Wallet, Users, X, Map as MapIcon, LogOut, UserCheck, Calendar, Contact } from 'lucide-react';
 
-export type ViewState = 'MAP' | 'OVERVIEW' | 'FINANCE' | 'PROFESSIONALS' | 'TENANTS';
+export type ViewState = 'MAP' | 'OVERVIEW' | 'FINANCE' | 'PROFESSIONALS' | 'TENANTS' | 'CLIENTS' | 'AGENDA';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,7 +14,9 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentView, onNavigate, onLogout }) => {
   const menuItems = [
     { id: 'MAP', label: 'Mapa Interactivo', icon: MapIcon },
+    { id: 'AGENDA', label: 'Agenda Diaria', icon: Calendar },
     { id: 'OVERVIEW', label: 'Visión General', icon: LayoutDashboard },
+    { id: 'CLIENTS', label: 'Clientes / Leads', icon: Contact },
     { id: 'TENANTS', label: 'Inquilinos', icon: UserCheck },
     { id: 'FINANCE', label: 'Finanzas', icon: Wallet },
     { id: 'PROFESSIONALS', label: 'Profesionales', icon: Users },

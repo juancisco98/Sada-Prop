@@ -1,11 +1,13 @@
-import { Property, Professional, MaintenanceTask, Building, PropertyStatus, TaskStatus, Tenant, TenantPayment, PropertyType } from '../types';
+import { Property, Professional, MaintenanceTask, Building, PropertyStatus, TaskStatus, Tenant, TenantPayment, PropertyType, Client, Appointment, AppointmentStatus, SearchType, PublicationStatus } from '../types';
 import {
     DbBuildingRow,
     DbPropertyRow,
     DbProfessionalRow,
     DbMaintenanceTaskRow,
     DbTenantRow,
-    DbTenantPaymentRow
+    DbTenantPaymentRow,
+    DbClientRow,
+    DbAppointmentRow
 } from '../types/dbRows';
 
 // ========== BUILDING MAPPERS ==========
@@ -58,6 +60,8 @@ export const dbToProperty = (row: DbPropertyRow): Property => ({
     buildingId: row.building_id || undefined,
     unitLabel: row.unit_label || undefined,
     propertyType: (row.property_type as PropertyType) || (row.building_id ? 'edificio' : 'casa'),
+    keyLocation: row.key_location || undefined,
+    publicationStatus: (row.publication_status as PublicationStatus) || undefined,
     userId: row.user_id,
 });
 
@@ -85,6 +89,8 @@ export const propertyToDb = (p: Property): Record<string, unknown> => ({
     building_id: p.buildingId || null,
     unit_label: p.unitLabel || '',
     property_type: p.propertyType || 'casa',
+    key_location: p.keyLocation || null,
+    publication_status: p.publicationStatus || null,
     user_id: p.userId || undefined,
 });
 
@@ -190,4 +196,62 @@ export const paymentToDb = (p: TenantPayment): Record<string, unknown> => ({
     proof_of_payment: p.proofOfPayment,
     notes: p.notes,
     user_id: p.userId || undefined,
+});
+
+// ========== CLIENT MAPPERS ==========
+
+export const dbToClient = (row: DbClientRow): Client => ({
+    id: row.id,
+    name: row.name,
+    phone: row.phone || '',
+    email: row.email || '',
+    budget: row.budget ? Number(row.budget) : undefined,
+    searchType: (row.search_type as SearchType) || undefined,
+    propertyTypeSought: row.property_type_sought || undefined,
+    notes: row.notes || undefined,
+    userId: row.user_id || undefined,
+});
+
+export const clientToDb = (c: Client): Record<string, unknown> => ({
+    id: c.id,
+    name: c.name,
+    phone: c.phone,
+    email: c.email,
+    budget: c.budget || null,
+    search_type: c.searchType || null,
+    property_type_sought: c.propertyTypeSought || null,
+    notes: c.notes || null,
+    user_id: c.userId || undefined,
+});
+
+// ========== APPOINTMENT MAPPERS ==========
+
+export const dbToAppointment = (row: DbAppointmentRow): Appointment => ({
+    id: row.id,
+    clientId: row.client_id,
+    propertyId: row.property_id,
+    professionalId: row.professional_id || undefined,
+    fechaHora: row.fecha_hora,
+    duration: row.duration,
+    status: row.status as AppointmentStatus,
+    comentariosPostVisita: row.comentarios_post_visita || undefined,
+    interestRating: row.interest_rating || undefined,
+    priceRating: row.price_rating || undefined,
+    feedbackComment: row.feedback_comment || undefined,
+    userId: row.user_id || undefined,
+});
+
+export const appointmentToDb = (a: Appointment): Record<string, unknown> => ({
+    id: a.id,
+    client_id: a.clientId,
+    property_id: a.propertyId,
+    professional_id: a.professionalId || null,
+    fecha_hora: a.fechaHora,
+    duration: a.duration,
+    status: a.status,
+    comentarios_post_visita: a.comentariosPostVisita || null,
+    interest_rating: a.interestRating || null,
+    price_rating: a.priceRating || null,
+    feedback_comment: a.feedbackComment || null,
+    user_id: a.userId || undefined,
 });

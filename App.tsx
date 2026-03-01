@@ -13,7 +13,7 @@ import FinishMaintenanceModal from './components/FinishMaintenanceModal';
 import AddProfessionalModal from './components/AddProfessionalModal';
 import AssignProfessionalModal from './components/AssignProfessionalModal';
 import BuildingCard from './components/BuildingCard';
-import { Property, Professional, User, Building } from './types';
+import { Property, Professional, User, Building, Appointment } from './types';
 import { DataProvider, useDataContext } from './context/DataContext';
 import { supabase, signOut } from './services/supabaseClient';
 import { ALLOWED_EMAILS } from './constants';
@@ -24,6 +24,10 @@ import { useBuildings } from './hooks/useBuildings';
 import { useTenantData } from './hooks/useTenantData';
 import { detectCountryFromAddress } from './utils/taxConfig';
 import { useSearch } from './hooks/useSearch';
+import { useClients } from './hooks/useClients';
+import { useAppointments } from './hooks/useAppointments';
+import ScheduleVisitModal from './components/ScheduleVisitModal';
+import VisitFeedbackModal from './components/VisitFeedbackModal';
 import type { Session } from '@supabase/supabase-js';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -33,6 +37,8 @@ const OverviewView = lazy(() => import('./components/DashboardViews').then(modul
 const FinanceView = lazy(() => import('./components/DashboardViews').then(module => ({ default: module.FinanceView })));
 const ProfessionalsView = lazy(() => import('./components/DashboardViews').then(module => ({ default: module.ProfessionalsView })));
 const TenantsView = lazy(() => import('./components/TenantsView'));
+const AgendaView = lazy(() => import('./components/AgendaView'));
+const ClientsView = lazy(() => import('./components/ClientsView'));
 
 const Dashboard: React.FC = () => {
   // Auth State
@@ -83,6 +89,25 @@ const Dashboard: React.FC = () => {
     getTenantMetrics,
   } = useTenantData(currentUser?.id);
 
+  // Client & Appointment Data
+  const {
+    clients,
+    handleSaveClient,
+    handleDeleteClient,
+    getMatchingProperties,
+  } = useClients(currentUser?.id);
+
+  const {
+    appointments,
+    handleSaveAppointment,
+    handleDeleteAppointment,
+    handleCompleteVisit,
+    handleCancelAppointment,
+    getTodayAppointments,
+    getWeekAppointments,
+    getPropertyAppointments,
+  } = useAppointments(currentUser?.id);
+
   // Selection State
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
@@ -110,6 +135,11 @@ const Dashboard: React.FC = () => {
   const [professionalToEdit, setProfessionalToEdit] = useState<Professional | null>(null);
   const [assigningProfessional, setAssigningProfessional] = useState<Professional | null>(null);
 
+  // Schedule Visit Modal State
+  const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false);
+  const [scheduleVisitProperty, setScheduleVisitProperty] = useState<Property | null>(null);
+  const [scheduleVisitClient, setScheduleVisitClient] = useState<string | null>(null);
+
   // --- URL State Management ---
   const isHydrated = useRef(false);
 
@@ -120,7 +150,7 @@ const Dashboard: React.FC = () => {
       const viewParam = params.get('view') as ViewState;
       const propertyIdParam = params.get('property');
 
-      if (viewParam && ['MAP', 'OVERVIEW', 'FINANCE', 'PROFESSIONALS', 'TENANTS'].includes(viewParam)) {
+      if (viewParam && ['MAP', 'OVERVIEW', 'FINANCE', 'PROFESSIONALS', 'TENANTS', 'CLIENTS', 'AGENDA'].includes(viewParam)) {
         setCurrentView(viewParam);
       }
 
@@ -484,6 +514,51 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         );
+      case 'AGENDA':
+        return (
+          <div className="h-full overflow-y-auto pt-28 px-6 bg-gray-50">
+            <div className="max-w-7xl mx-auto">
+              <Suspense fallback={<div className="p-10 text-center">Cargando agenda...</div>}>
+                <AgendaView
+                  appointments={appointments}
+                  clients={clients}
+                  properties={properties}
+                  professionals={professionals}
+                  onCompleteVisit={handleCompleteVisit}
+                  onCancelAppointment={handleCancelAppointment}
+                  onScheduleNew={() => {
+                    setScheduleVisitProperty(null);
+                    setScheduleVisitClient(null);
+                    setShowScheduleVisitModal(true);
+                  }}
+                />
+              </Suspense>
+            </div>
+          </div>
+        );
+      case 'CLIENTS':
+        return (
+          <div className="h-full overflow-y-auto pt-28 px-6 bg-gray-50">
+            <div className="max-w-7xl mx-auto">
+              <Suspense fallback={<div className="p-10 text-center">Cargando clientes...</div>}>
+                <ClientsView
+                  clients={clients}
+                  properties={properties}
+                  appointments={appointments}
+                  onSaveClient={handleSaveClient}
+                  onDeleteClient={handleDeleteClient}
+                  getMatchingProperties={getMatchingProperties}
+                  onScheduleVisit={(clientId, propertyId) => {
+                    const prop = properties.find(p => p.id === propertyId);
+                    setScheduleVisitProperty(prop || null);
+                    setScheduleVisitClient(clientId);
+                    setShowScheduleVisitModal(true);
+                  }}
+                />
+              </Suspense>
+            </div>
+          </div>
+        );
       case 'MAP':
       default:
         return (
@@ -531,6 +606,13 @@ const Dashboard: React.FC = () => {
                   setPreviousBuilding(null);
                 } : undefined}
                 professionals={professionals}
+                propertyAppointments={getPropertyAppointments(selectedProperty.id)}
+                clients={clients}
+                onScheduleVisit={(prop) => {
+                  setScheduleVisitProperty(prop);
+                  setScheduleVisitClient(null);
+                  setShowScheduleVisitModal(true);
+                }}
               />
             )}
           </>
@@ -625,6 +707,25 @@ const Dashboard: React.FC = () => {
           properties={properties}
           onClose={() => setAssigningProfessional(null)}
           onConfirm={(propertyId, taskDescription) => handleAssignProfessionalToProperty(propertyId, taskDescription)}
+        />
+      )}
+
+      {showScheduleVisitModal && (
+        <ScheduleVisitModal
+          clients={clients}
+          properties={properties}
+          professionals={professionals}
+          preSelectedProperty={scheduleVisitProperty}
+          preSelectedClient={scheduleVisitClient ? clients.find(c => c.id === scheduleVisitClient) : null}
+          onClose={() => {
+            setShowScheduleVisitModal(false);
+            setScheduleVisitProperty(null);
+            setScheduleVisitClient(null);
+          }}
+          onSave={(appt) => {
+            handleSaveAppointment(appt);
+            toast.success('Visita agendada correctamente.');
+          }}
         />
       )}
     </div>
