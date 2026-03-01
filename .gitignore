@@ -26,7 +26,12 @@ dist-ssr
 # Agent / Skills
 .gemini/
 .agent/
+.claude/
 ui-ux-pro-max-skill/
+Skills de Calude/
+
+# Android release builds
+android/app/release/
 
 # Lint artifacts
 lint_output.txt
