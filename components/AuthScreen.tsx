@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 const AUTO_CLEAR_ERROR_MS = 5000;
@@ -45,11 +45,7 @@ const AuthScreen: React.FC = () => {
 
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-white tracking-tight">SV Propiedades</h1>
-          <p className="text-blue-200 mt-2 text-sm font-medium">Gestión Inmobiliaria Inteligente</p>
-          <div className="mt-4 inline-flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold px-3 py-1.5 rounded-full">
-            <Lock className="w-3.5 h-3.5" />
-            Acceso Privado Familiar
-          </div>
+          <p className="text-blue-200 mt-2 text-sm font-medium">Plataforma para Agentes Inmobiliarios</p>
         </div>
 
         <div className="space-y-6">
@@ -94,7 +90,7 @@ const AuthScreen: React.FC = () => {
           )}
 
           <p className="text-center text-gray-400 text-xs">
-            Solo emails autorizados de la familia Sada.
+            Inicia sesión con tu cuenta de Google para acceder.
           </p>
         </div>
 

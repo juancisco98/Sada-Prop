@@ -10,6 +10,7 @@ interface ClientsViewProps {
     onDeleteClient: (clientId: string) => void;
     getMatchingProperties: (clientId: string) => Property[];
     onScheduleVisit: (clientId: string, propertyId: string) => void;
+    onComposeEmail?: (to: string, recipientName: string) => void;
 }
 
 const ClientsView: React.FC<ClientsViewProps> = ({
@@ -20,6 +21,7 @@ const ClientsView: React.FC<ClientsViewProps> = ({
     onDeleteClient,
     getMatchingProperties,
     onScheduleVisit,
+    onComposeEmail,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -185,6 +187,15 @@ const ClientsView: React.FC<ClientsViewProps> = ({
                                                 {client.email && (
                                                     <span className="flex items-center gap-1">
                                                         <Mail className="w-3.5 h-3.5" /> {client.email}
+                                                        {onComposeEmail && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); onComposeEmail(client.email, client.name); }}
+                                                                className="ml-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-bold hover:bg-blue-100 transition-colors"
+                                                                title="Enviar email"
+                                                            >
+                                                                Enviar
+                                                            </button>
+                                                        )}
                                                     </span>
                                                 )}
                                                 {client.propertyTypeSought && (

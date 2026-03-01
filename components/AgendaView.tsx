@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, User, CheckCircle, XCircle, ChevronRight, Star } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, CheckCircle, XCircle, ChevronRight, Star, RefreshCw } from 'lucide-react';
 import { Appointment, Client, Property, Professional, AppointmentStatus } from '../types';
 import VisitFeedbackModal from './VisitFeedbackModal';
 
@@ -13,6 +13,8 @@ interface AgendaViewProps {
     onCompleteVisit: (apptId: string, interestRating: number, priceRating: number, feedbackComment: string, comentarios: string) => void;
     onCancelAppointment: (apptId: string) => void;
     onScheduleNew: () => void;
+    onSyncCalendar?: () => Promise<{ synced: number }>;
+    onComposeEmail?: (to: string, clientName: string) => void;
 }
 
 const AgendaView: React.FC<AgendaViewProps> = ({
@@ -23,9 +25,25 @@ const AgendaView: React.FC<AgendaViewProps> = ({
     onCompleteVisit,
     onCancelAppointment,
     onScheduleNew,
+    onSyncCalendar,
+    onComposeEmail,
 }) => {
     const [activeTab, setActiveTab] = useState<AgendaTab>('HOY');
     const [completingVisit, setCompletingVisit] = useState<Appointment | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSync = async () => {
+        if (!onSyncCalendar || isSyncing) return;
+        setIsSyncing(true);
+        try {
+            const { synced } = await onSyncCalendar();
+            if (synced > 0) {
+                // Toast is handled by the parent or hook
+            }
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const today = new Date().toISOString().slice(0, 10);
 
@@ -97,12 +115,25 @@ const AgendaView: React.FC<AgendaViewProps> = ({
                     </h1>
                     <p className="text-gray-500 mt-1 capitalize">{todayFormatted}</p>
                 </div>
-                <button
-                    onClick={onScheduleNew}
-                    className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg"
-                >
-                    + Nueva Visita
-                </button>
+                <div className="flex gap-2">
+                    {onSyncCalendar && (
+                        <button
+                            onClick={handleSync}
+                            disabled={isSyncing}
+                            className="px-4 py-3 bg-white text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all border border-gray-200 flex items-center gap-2"
+                            title="Sincronizar con Google Calendar"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                            <span className="hidden sm:inline">Sincronizar</span>
+                        </button>
+                    )}
+                    <button
+                        onClick={onScheduleNew}
+                        className="px-6 py-3 bg-gray-900 text-white font-bold rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg"
+                    >
+                        + Nueva Visita
+                    </button>
+                </div>
             </div>
 
             {/* Tabs */}

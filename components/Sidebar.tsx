@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Wallet, Users, X, Map as MapIcon, LogOut, UserCheck, Calendar, Contact } from 'lucide-react';
+import { LayoutDashboard, Wallet, Users, X, Map as MapIcon, LogOut, UserCheck, Calendar, Contact, Download } from 'lucide-react';
 
 export type ViewState = 'MAP' | 'OVERVIEW' | 'FINANCE' | 'PROFESSIONALS' | 'TENANTS' | 'CLIENTS' | 'AGENDA';
 
@@ -9,9 +9,10 @@ interface SidebarProps {
   currentView: ViewState;
   onNavigate: (view: ViewState) => void;
   onLogout?: () => void;
+  onExport?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentView, onNavigate, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentView, onNavigate, onLogout, onExport }) => {
   const menuItems = [
     { id: 'MAP', label: 'Mapa Interactivo', icon: MapIcon },
     { id: 'AGENDA', label: 'Agenda Diaria', icon: Calendar },
@@ -75,6 +76,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentView, onNavig
               Sada Voice Activo
             </div>
           </div>
+
+          {onExport && (
+            <button
+              onClick={() => { onExport(); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-emerald-600 hover:bg-emerald-50 transition-colors border border-transparent hover:border-emerald-100"
+            >
+              <Download className="w-5 h-5" />
+              <span className="font-medium">Exportar Datos</span>
+            </button>
+          )}
 
           {onLogout && (
             <button

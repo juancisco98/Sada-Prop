@@ -16,7 +16,7 @@ import BuildingCard from './components/BuildingCard';
 import { Property, Professional, User, Building, Appointment } from './types';
 import { DataProvider, useDataContext } from './context/DataContext';
 import { supabase, signOut } from './services/supabaseClient';
-import { ALLOWED_EMAILS } from './constants';
+import { persistGoogleTokens } from './services/googleTokenService';
 import { useProperties } from './hooks/useProperties';
 import { useProfessionals } from './hooks/useProfessionals';
 import { useMaintenance } from './hooks/useMaintenance';
@@ -28,6 +28,8 @@ import { useClients } from './hooks/useClients';
 import { useAppointments } from './hooks/useAppointments';
 import ScheduleVisitModal from './components/ScheduleVisitModal';
 import VisitFeedbackModal from './components/VisitFeedbackModal';
+import ComposeEmailModal from './components/ComposeEmailModal';
+import ExportModal from './components/ExportModal';
 import type { Session } from '@supabase/supabase-js';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -103,6 +105,7 @@ const Dashboard: React.FC = () => {
     handleDeleteAppointment,
     handleCompleteVisit,
     handleCancelAppointment,
+    syncFromCalendar,
     getTodayAppointments,
     getWeekAppointments,
     getPropertyAppointments,
@@ -139,6 +142,18 @@ const Dashboard: React.FC = () => {
   const [showScheduleVisitModal, setShowScheduleVisitModal] = useState(false);
   const [scheduleVisitProperty, setScheduleVisitProperty] = useState<Property | null>(null);
   const [scheduleVisitClient, setScheduleVisitClient] = useState<string | null>(null);
+
+  // Export Modal State
+  const [showExportModal, setShowExportModal] = useState(false);
+
+  // Compose Email Modal State
+  const [composeEmailTo, setComposeEmailTo] = useState<string | null>(null);
+  const [composeEmailName, setComposeEmailName] = useState('');
+
+  const handleComposeEmail = (to: string, name: string) => {
+    setComposeEmailTo(to);
+    setComposeEmailName(name);
+  };
 
   // --- URL State Management ---
   const isHydrated = useRef(false);
@@ -212,24 +227,21 @@ const Dashboard: React.FC = () => {
 
       if (session?.user?.email) {
         const userEmail = session.user.email.toLowerCase();
-        const isAllowed = ALLOWED_EMAILS.map(e => e.toLowerCase()).includes(userEmail);
+        setCurrentUser({
+          id: session.user.id,
+          name: session.user.user_metadata?.full_name || userEmail.split('@')[0],
+          email: userEmail,
+          photoURL: session.user.user_metadata?.avatar_url,
+          color: '#3b82f6'
+        });
+        setIsAuthenticated(true);
+        logger.log('[Auth] User authenticated.');
 
-        if (isAllowed) {
-          setCurrentUser({
-            id: session.user.id,
-            name: session.user.user_metadata?.full_name || userEmail.split('@')[0],
-            email: userEmail,
-            photoURL: session.user.user_metadata?.avatar_url,
-            color: '#3b82f6'
-          });
-          setIsAuthenticated(true);
-          logger.log('[Auth] User authenticated.');
-        } else {
-          logger.warn('[Auth] Unauthorized access attempt.');
-          await signOut();
-          handleError(new Error('Unauthorized'), `Acceso denegado: El correo ${userEmail} no está en la lista permitida.`);
-          setIsAuthenticated(false);
-          setCurrentUser(null);
+        // Persist Google provider tokens for Calendar/Gmail integration
+        if (session.provider_token) {
+          persistGoogleTokens(session).catch(err =>
+            logger.error('[Auth] Failed to persist Google tokens:', err)
+          );
         }
       } else {
         if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && session === null)) {
@@ -531,6 +543,8 @@ const Dashboard: React.FC = () => {
                     setScheduleVisitClient(null);
                     setShowScheduleVisitModal(true);
                   }}
+                  onSyncCalendar={syncFromCalendar}
+                  onComposeEmail={handleComposeEmail}
                 />
               </Suspense>
             </div>
@@ -554,6 +568,7 @@ const Dashboard: React.FC = () => {
                     setScheduleVisitClient(clientId);
                     setShowScheduleVisitModal(true);
                   }}
+                  onComposeEmail={handleComposeEmail}
                 />
               </Suspense>
             </div>
@@ -641,6 +656,7 @@ const Dashboard: React.FC = () => {
         currentView={currentView}
         onNavigate={setCurrentView}
         onLogout={handleLogout}
+        onExport={() => setShowExportModal(true)}
       />
 
       <Header
@@ -726,6 +742,18 @@ const Dashboard: React.FC = () => {
             handleSaveAppointment(appt);
             toast.success('Visita agendada correctamente.');
           }}
+        />
+      )}
+
+      {showExportModal && (
+        <ExportModal onClose={() => setShowExportModal(false)} />
+      )}
+
+      {composeEmailTo && (
+        <ComposeEmailModal
+          to={composeEmailTo}
+          recipientName={composeEmailName}
+          onClose={() => { setComposeEmailTo(null); setComposeEmailName(''); }}
         />
       )}
     </div>

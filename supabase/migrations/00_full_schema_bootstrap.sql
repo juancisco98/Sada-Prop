@@ -1,26 +1,8 @@
 -- ============================================================
 -- FULL SCHEMA BOOTSTRAP for new Supabase project
 -- Run this FIRST in Supabase SQL Editor
+-- Multi-tenant: each user sees only their own data
 -- ============================================================
-
--- ==============================
--- 0. allowed_emails (auth whitelist)
--- ==============================
-CREATE TABLE IF NOT EXISTS allowed_emails (
-    email TEXT PRIMARY KEY,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-INSERT INTO allowed_emails (email) VALUES
-    ('juan.sada98@gmail.com'),
-    ('svsistemas@yahoo.com'),
-    ('antovent64@gmail.com')
-ON CONFLICT (email) DO NOTHING;
-
-ALTER TABLE allowed_emails ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow authenticated read on allowed_emails" ON allowed_emails
-    FOR SELECT TO authenticated USING (true);
 
 -- ==============================
 -- 1. buildings
@@ -38,10 +20,10 @@ CREATE TABLE IF NOT EXISTS buildings (
 );
 
 ALTER TABLE buildings ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to buildings" ON buildings
+CREATE POLICY "User isolation on buildings" ON buildings
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- 2. properties
@@ -77,10 +59,10 @@ CREATE TABLE IF NOT EXISTS properties (
 );
 
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to properties" ON properties
+CREATE POLICY "User isolation on properties" ON properties
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- 3. professionals
@@ -99,10 +81,10 @@ CREATE TABLE IF NOT EXISTS professionals (
 );
 
 ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to professionals" ON professionals
+CREATE POLICY "User isolation on professionals" ON professionals
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- 4. maintenance_tasks
@@ -123,10 +105,10 @@ CREATE TABLE IF NOT EXISTS maintenance_tasks (
 );
 
 ALTER TABLE maintenance_tasks ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to maintenance_tasks" ON maintenance_tasks
+CREATE POLICY "User isolation on maintenance_tasks" ON maintenance_tasks
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- 5. tenants
@@ -142,10 +124,10 @@ CREATE TABLE IF NOT EXISTS tenants (
 );
 
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to tenants" ON tenants
+CREATE POLICY "User isolation on tenants" ON tenants
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- 6. tenant_payments
@@ -168,13 +150,13 @@ CREATE TABLE IF NOT EXISTS tenant_payments (
 );
 
 ALTER TABLE tenant_payments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to tenant_payments" ON tenant_payments
+CREATE POLICY "User isolation on tenant_payments" ON tenant_payments
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
--- 7. clients (NEW - Realtor CRM)
+-- 7. clients (Realtor CRM)
 -- ==============================
 CREATE TABLE IF NOT EXISTS clients (
     id TEXT PRIMARY KEY,
@@ -190,13 +172,13 @@ CREATE TABLE IF NOT EXISTS clients (
 );
 
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to clients" ON clients
+CREATE POLICY "User isolation on clients" ON clients
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
--- 8. appointments (NEW - Realtor CRM)
+-- 8. appointments (Visitas)
 -- ==============================
 CREATE TABLE IF NOT EXISTS appointments (
     id TEXT PRIMARY KEY,
@@ -210,15 +192,49 @@ CREATE TABLE IF NOT EXISTS appointments (
     interest_rating INTEGER CHECK (interest_rating BETWEEN 1 AND 5),
     price_rating INTEGER CHECK (price_rating BETWEEN 1 AND 5),
     feedback_comment TEXT,
+    google_event_id TEXT,
     user_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Family access to appointments" ON appointments
+CREATE POLICY "User isolation on appointments" ON appointments
     FOR ALL TO authenticated
-    USING ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails))
-    WITH CHECK ((auth.jwt() ->> 'email') IN (SELECT email FROM allowed_emails));
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- ==============================
+-- 9. google_tokens (OAuth token persistence)
+-- ==============================
+CREATE TABLE IF NOT EXISTS google_tokens (
+    user_id TEXT PRIMARY KEY,
+    provider_token TEXT NOT NULL,
+    provider_refresh_token TEXT,
+    token_expires_at TIMESTAMPTZ,
+    scopes TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE google_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "User isolation on google_tokens" ON google_tokens
+    FOR ALL TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
+
+-- ==============================
+-- 10. calendar_sync_state (incremental sync cursor)
+-- ==============================
+CREATE TABLE IF NOT EXISTS calendar_sync_state (
+    user_id TEXT PRIMARY KEY,
+    sync_token TEXT,
+    last_synced_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE calendar_sync_state ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "User isolation on calendar_sync_state" ON calendar_sync_state
+    FOR ALL TO authenticated
+    USING (user_id = auth.uid()::text)
+    WITH CHECK (user_id = auth.uid()::text);
 
 -- ==============================
 -- Storage bucket for payment proofs
@@ -226,3 +242,9 @@ CREATE POLICY "Family access to appointments" ON appointments
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('payment-proofs', 'payment-proofs', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Per-user storage isolation
+CREATE POLICY "User isolation on payment_proofs" ON storage.objects
+    FOR ALL TO authenticated
+    USING (bucket_id = 'payment-proofs' AND (storage.foldername(name))[1] = auth.uid()::text)
+    WITH CHECK (bucket_id = 'payment-proofs' AND (storage.foldername(name))[1] = auth.uid()::text);

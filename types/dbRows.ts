@@ -108,6 +108,7 @@ export interface DbAppointmentRow {
     interest_rating?: number | null;
     price_rating?: number | null;
     feedback_comment?: string | null;
+    google_event_id?: string | null;
     user_id?: string | null;
     created_at?: string;
 }

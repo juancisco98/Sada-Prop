@@ -238,6 +238,7 @@ export const dbToAppointment = (row: DbAppointmentRow): Appointment => ({
     interestRating: row.interest_rating || undefined,
     priceRating: row.price_rating || undefined,
     feedbackComment: row.feedback_comment || undefined,
+    googleEventId: row.google_event_id || undefined,
     userId: row.user_id || undefined,
 });
 
@@ -253,5 +254,6 @@ export const appointmentToDb = (a: Appointment): Record<string, unknown> => ({
     interest_rating: a.interestRating || null,
     price_rating: a.priceRating || null,
     feedback_comment: a.feedbackComment || null,
+    google_event_id: a.googleEventId || null,
     user_id: a.userId || undefined,
 });

@@ -159,6 +159,7 @@ export interface Appointment {
   interestRating?: number; // 1-5
   priceRating?: number; // 1-5
   feedbackComment?: string;
+  googleEventId?: string;
   userId?: string;
 }
 

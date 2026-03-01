@@ -1,10 +1,3 @@
-// Google Auth Allowlist
-export const ALLOWED_EMAILS = [
-  'juan.sada98@gmail.com',
-  'svsistemas@yahoo.com',
-  'antovent64@gmail.com',
-];
-
 // Buenos Aires Center (Palermo/Recoleta area)
 export const MAP_CENTER: [number, number] = [-34.5997, -58.4000];
 
